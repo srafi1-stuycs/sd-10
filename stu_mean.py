@@ -1,35 +1,31 @@
 #! /usr/bin/env python
 
-'''
-Team NoPJs
-Shakil Rafi
-Brian Leung
-HW 10: Average
-PD 7 SoftDev
-2017-10-16
-'''
+# Team NoPJs Shakil Rafi and Brian Leung
+# HW10: Average
+# SoftDev pd7
+# 2017-10-16
 
 import sqlite3
 
 f = 'discobandit.db'
-db = sqlite3.connect(f)
+db = sqlite3.connect(f) # open db
 c = db.cursor()
 q = '''SELECT name, peeps.id, mark
 FROM peeps, courses
 WHERE peeps.id = courses.id;'''
-foo  = c.execute(q)
+db_result  = c.execute(q) # retrieve all names, ids, and grades
 
-students = {}
-for bar in foo:
-    name = bar[0]
+students = {} # to hold each student's average
+for student in db_result:
+    name = student[0]
     if name in students:
-        students[name]['total'] += bar[2]
+        students[name]['total'] += student[2] # add to total for dividing later
         students[name]['num_classes'] += 1
     else:
-        students[name] = {}
-        students[name]['total'] = bar[2]
+        students[name] = {} # initialize sub-dict for student
+        students[name]['total'] = student[2]
         students[name]['num_classes'] = 1
-        students[name]['id'] = bar[1]
+        students[name]['id'] = student[1]
 
 print 'Name, id, gpa'
 for student in students.keys():
