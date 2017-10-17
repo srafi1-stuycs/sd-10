@@ -41,8 +41,6 @@ def update_avg():
     c = db.cursor()
     csvfile = open("courses.csv","rb")
     reader = csv.DictReader(csvfile)
-    command = 'CREATE TABLE courses(code TEXT, mark INTEGER, id INTEGER)'
-    c.execute(command)
     for row in reader:
         command = 'INSERT INTO courses VALUES("%s",%s,%s)' % (row['code'], row['mark'], row['id'])
         c.execute(command)
