@@ -6,16 +6,36 @@
 # 2017-10-16
 
 import sqlite3
+import csv
+f = 'discobandit.db'
+db = sqlite3.connect(f) 
+c = db.cursor()
 
+def make_courses():
+    command = 'CREATE TABLE courses(code TEXT, mark INTEGER, id INTEGER)'
+    c.execute(command) # create table
+    courses = open('courses.csv', 'r')
+    reader = csv.DictReader(courses)
+    for row in reader:
+        command = 'INSERT INTO courses VALUES ("%s", %s, %s)' % (row['code'], row['mark'], row['id'])
+        c.execute(command) # add given row to table
 
-def make_avgs():
-    command = "CREATE TABLE peeps_avg(id INTEGER, avg INTEGER)"
-    q = '''SELECT name, peeps.id, mark
+def make_peeps():
+    command = 'CREATE TABLE peeps(name TEXT, age INTEGER, id INTEGER PRIMARY KEY)'
+    c.execute(command)
+    peeps = open('peeps.csv', 'r')
+    reader = csv.DictReader(peeps)
+    for row in reader:
+        command = 'INSERT INTO peeps VALUES ("%s", %s, %s)' % (row['name'], row['age'], row['id'])
+        c.execute(command)
+
+def make_peeps_avg():
+    create_command = "CREATE TABLE peeps_avg(id INTEGER, avg INTEGER)"
+    select_command = '''SELECT name, peeps.id, mark
     FROM peeps, courses
     WHERE peeps.id = courses.id;'''
-    c.execute(command)
-    db_result = c.execute(q)
-    print db_result
+    c.execute(create_command)
+    db_result = c.execute(select_command)
     students = {} # to hold each student's average
     for student in db_result:
         name = student[0]
@@ -36,52 +56,64 @@ def make_avgs():
         c.execute(command)
     return students
 
-def update_avg():
-    db = sqlite3.connect(f) 
-    c = db.cursor()
-    csvfile = open("courses.csv","rb")
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-        command = 'INSERT INTO courses VALUES("%s",%s,%s)' % (row['code'], row['mark'], row['id'])
+def update_peeps_avg():
+    select_command = '''SELECT name, peeps.id, mark
+    FROM peeps, courses
+    WHERE peeps.id = courses.id;'''
+    db_result = c.execute(select_command)
+    students = {} # to hold each student's average
+    for student in db_result:
+        name = student[0]
+        if name in students:
+            students[name]['total'] += int(student[2]) # add to total for dividing later
+            students[name]['num_classes'] += 1
+        else:
+            students[name] = {} # initialize sub-dict for student
+            students[name]['total'] = int(student[2])
+            students[name]['num_classes'] = 1
+            students[name]['id'] = student[1]    
+    for student in students.keys():
+        total = students[student]['total']
+        num_classes = students[student]['num_classes']
+        gpa = total/num_classes
+        stu_id = students[student]['id']
+        command = "UPDATE peeps_avg SET avg = %d WHERE id = %d" % (gpa, stu_id)
         c.execute(command)
+    return students
 
+def update_courses():
+    f = open('courses.csv', 'r')
+    reader = csv.DictReader(f)
+    for row in reader:
+        command = 'SELECT * FROM courses WHERE code = "%s" AND id = %s AND mark = %s' % (row['code'], row['id'], row['mark'])
+        result = c.execute(command)
+        if result.rowcount < 1:
+            for r in result:
+                print row, r
+            command = 'INSERT INTO courses VALUES("%s", %s, %s)' % (row['code'], row['mark'], row['id'])
+            c.execute(command)
 
+def print_avgs():
+    command = '''SELECT name, peeps.id, avg
+    FROM peeps, peeps_avg
+    WHERE peeps.id = peeps_avg.id'''
+    students = c.execute(command)
+    print 'Name, id, gpa'
+    for student in students:
+        name = student[0]
+        stu_id = student[1]
+        avg = student[2]
+        print '%s, %s, %d' % (name, stu_id, avg)
 
-def new_course(name, id, avg):
+try:
+    make_courses()
+    make_peeps()
+    make_peeps_avg()
+except:
+    update_courses()
+    update_peeps_avg()
 
-
-
-
-f = 'discobandit.db'
-db = sqlite3.connect(f) # open db
-c = db.cursor()
-q = '''SELECT name, peeps.id, mark
-FROM peeps, courses
-WHERE peeps.id = courses.id;'''
-db_result  = c.execute(q) # retrieve all names, ids, and grades
-
-students = {} # to hold each student's average
-for student in db_result:
-    name = student[0]
-    if name in students:
-        students[name]['total'] += student[2] # add to total for dividing later
-        students[name]['num_classes'] += 1
-    else:
-        students[name] = {} # initialize sub-dict for student
-        students[name]['total'] = student[2]
-        students[name]['num_classes'] = 1
-        students[name]['id'] = student[1]
-
-print 'Name, id, gpa'
-print make_avgs()
-'''
-for student in students.keys():
-    total = students[student]['total']
-    num_classes = students[student]['num_classes']
-    gpa = total/num_classes
-    stu_id = students[student]['id']
-    print '%s, %s, %d' % (student, stu_id, gpa)
-'''
+print_avgs()
 
 db.commit() #save changes
 db.close()
