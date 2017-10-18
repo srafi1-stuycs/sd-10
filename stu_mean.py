@@ -80,7 +80,7 @@ def update_peeps_avg():
         command = "UPDATE peeps_avg SET avg = %d WHERE id = %d" % (gpa, stu_id)
         c.execute(command)
     return students
-
+'''
 def update_courses():
     f = open('courses.csv', 'r')
     reader = csv.DictReader(f)
@@ -92,6 +92,19 @@ def update_courses():
                 print row, r
             command = 'INSERT INTO courses VALUES("%s", %s, %s)' % (row['code'], row['mark'], row['id'])
             c.execute(command)
+'''
+def update_courses():
+	f = 'discobandit.db'
+	csvfile = open("courses.csv","rb")
+	reader = csv.DictReader(csvfile)
+	command = 'DROP TABLE courses'
+	c.execute(command)
+	command = 'CREATE TABLE courses(code TEXT, mark INTEGER, id INTEGER)'
+	c.execute(command)
+	for row in reader:
+		command = 'INSERT INTO courses VALUES("%s",%s,%s)' % (row['code'], row['mark'], row['id'])
+		c.execute(command)
+	return "Done"
 
 def print_avgs():
     command = '''SELECT name, peeps.id, avg
